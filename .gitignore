@@ -1,0 +1,10 @@
+.xmake/*
+.vs/*
+.vscode/*
+CMakeLists.txt
+Makefile
+vs*/*
+vsxmake*/*
+build/
+docs/
+imgui.ini
