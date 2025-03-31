@@ -1,6 +1,7 @@
 add_requires("entt", "gtest", "glm >=1.0.1", "glfw >=3.4", "glew", "spdlog", "fmt", "stb", "rttr >= 0.9.7")
 add_requires("imgui", {configs = {glfw_opengl3 = true}})
 
+
 set_project("ES-Editor")
 set_languages("c++20")
 

@@ -11,36 +11,6 @@
 
 #include <rttr/registration>
 
-struct Test
-{
-    int a = 0;
-    float b = 0.0f;
-    std::string c = "Hello World!";
-};
-
-RTTR_REGISTRATION
-{
-  using namespace rttr;
-  registration::class_<Test>("Test")
-    .constructor<>()
-    .property("a", &Test::a)
-    (
-        metadata("GUI_LABEL", "A."),
-        metadata("GUI_DESCR", "The value of A.")
-    )
-    .property("b", &Test::b)
-    (
-        metadata("GUI_LABEL", "B."),
-        metadata("GUI_DESCR", "The value of B.")
-    )
-    .property("c", &Test::c)
-    (
-        metadata("GUI_LABEL", "C."),
-        metadata("GUI_DESCR", "The value of C.")
-    );
-}
-
-
 class OpenGLIMGUI : public ES::Engine::APlugin {
     public:
       explicit OpenGLIMGUI(ES::Engine::Core &core)
@@ -127,24 +97,61 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
     }
 };
 
+struct Test
+{
+    int a = 0;
+    float b = 0.0f;
+    std::string c = "Hello World!";
+};
+
 auto main(int, char**) -> int {
     ES::Engine::Core core;
 
     core.AddPlugins<OpenGLIMGUI>();
 
-    // get metadata of Test class
-    rttr::type test_type = rttr::type::get<Test>();
-    for (const auto& prop : test_type.get_properties()) {
-        std::cout << "Property: " << prop.get_name() << std::endl;
-        std::cout << "  Type: " << prop.get_type().get_name() << std::endl;
-        if (prop.get_metadata("GUI_LABEL").is_valid()) {
-            std::cout << "  GUI Label: " << prop.get_metadata("GUI_LABEL").to_string() << std::endl;
-        }
-        if (prop.get_metadata("GUI_DESCR").is_valid()) {
-            std::cout << "  GUI Description: " << prop.get_metadata("GUI_DESCR").to_string() << std::endl;
+    rttr::registration::class_<Test>(std::to_string(entt::type_hash<Test>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "Test Class"),
+            rttr::metadata("GUI_DESCR", "This is a test class.")
+        )
+        .constructor<>()
+        .property("a", &Test::a)
+        (
+            rttr::metadata("GUI_LABEL", "A."),
+            rttr::metadata("GUI_DESCR", "The value of A.")
+        )
+        .property("b", &Test::b)
+        (
+            rttr::metadata("GUI_LABEL", "B."),
+            rttr::metadata("GUI_DESCR", "The value of B.")
+        )
+        .property("c", &Test::c)
+        (
+            rttr::metadata("GUI_LABEL", "C."),
+            rttr::metadata("GUI_DESCR", "The value of C.")
+        );
+
+    core.CreateEntity().AddComponent<Test>(core);
+    core.CreateEntity().AddComponent<Test>(core);
+    for (auto [id, storage]: core.GetRegistry().storage()) {
+        std::string name = std::to_string(id);
+        rttr::type type = rttr::type::get_by_name(name);
+        if (type.is_valid()) {
+            std::cout << "Type: " << type.get_name() << std::endl;
+            for (const auto& prop : type.get_properties()) {
+                std::cout << "Property: " << prop.get_name() << std::endl;
+                std::cout << "  Type: " << prop.get_type().get_name() << std::endl;
+                if (prop.get_metadata("GUI_LABEL").is_valid()) {
+                    std::cout << "  GUI Label: " << prop.get_metadata("GUI_LABEL").to_string() << std::endl;
+                }
+                if (prop.get_metadata("GUI_DESCR").is_valid()) {
+                    std::cout << "  GUI Description: " << prop.get_metadata("GUI_DESCR").to_string() << std::endl;
+                }
+            }
+        } else {
+            std::cout << "Type not found for ID: " << id << " with name: " << name << std::endl;
         }
     }
-
 
     core.RunCore();
     return 0;
