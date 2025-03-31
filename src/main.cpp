@@ -65,8 +65,45 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        static bool show_demo_window = true;
-        ImGui::ShowDemoWindow(&show_demo_window);
+
+        ImGui::Begin("Components:");
+        
+        for (auto [id, storage]: core.GetRegistry().storage()) {
+            std::string name = std::to_string(id);
+            rttr::type type = rttr::type::get_by_name(name);
+            // ImGui::BeginChild(name.c_str());
+            if (type.is_valid()) {
+                ImGui::Text("Component: %s", type.get_metadata("GUI_LABEL").is_valid() ? type.get_metadata("GUI_LABEL").to_string().c_str() : type.get_name().data() /* or fallback name*/);
+                ImGui::Text("Description: %s", type.get_metadata("GUI_DESCR").is_valid() ? type.get_metadata("GUI_DESCR").to_string().c_str() : "No description available.");
+                if (!type.get_properties().empty()) {
+                    ImGui::Text("Properties:");
+                    for (const auto& prop : type.get_properties()) {
+                        if (prop.get_metadata("GUI_LABEL").is_valid()) {
+                            ImGui::Text("  %s", prop.get_metadata("GUI_LABEL").to_string().c_str());
+                        } else {
+                            ImGui::Text("  %s", prop.get_type().get_name().data());
+                        }
+                        if (prop.get_metadata("GUI_DESCR").is_valid()) {
+                            ImGui::Text("  Description: %s", prop.get_metadata("GUI_DESCR").to_string().c_str());
+                        }
+                    }
+                }
+                ImGui::Separator();
+            } else {
+                // ImGui::Text("Component (not valid): %s ", storage.type().name());
+                std::cout << storage.type().name() << std::endl;
+            }
+        }
+
+        ImGui::End();
+
+        ImGui::Begin("Hierarchy:");
+        ImGui::Text("Entities:");
+        auto view = core.GetRegistry().view<entt::entity>();
+        for (auto entity : view) {
+            ImGui::Text("  Entity: %d", (int)entity);
+        }
+
         ImGui::Render();
     });
 
@@ -97,61 +134,125 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
     }
 };
 
-struct Test
+void AddQuad(ES::Engine::Core &core)
 {
-    int a = 0;
-    float b = 0.0f;
-    std::string c = "Hello World!";
-};
+    using namespace glm;
+
+    auto quad = ES::Engine::Entity(core.GetRegistry().create());
+
+    ES::Plugin::Object::Component::Mesh mesh;
+
+    mesh.vertices = {
+        glm::vec3(-1, 1, 0),
+        glm::vec3(1, 1, 0),
+        glm::vec3(-1, -1, 0),
+        glm::vec3(1, -1, 0)
+    };
+
+    mesh.normals = {
+        glm::vec3(0, 0, -1),
+        glm::vec3(0, 0, -1),
+        glm::vec3(0, 0, -1),
+        glm::vec3(0, 0, -1)
+    };
+
+    mesh.indices = {2, 0, 1, 2, 1, 3};
+
+    quad.AddComponent<ES::Plugin::Object::Component::Mesh>(core, mesh);
+    auto &transform = quad.AddComponent<ES::Plugin::Object::Component::Transform>(core);
+
+    transform.position = glm::vec3(0.0f, -1.0f, 0.0f);
+    transform.rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
+    transform.scale = glm::vec3(10.0f, 10.0f, 10.0f);
+
+    quad.AddComponent<ES::Plugin::OpenGL::Component::ShaderHandle>(core, ES::Plugin::OpenGL::Component::ShaderHandle("default"));
+    quad.AddComponent<ES::Plugin::OpenGL::Component::MaterialHandle>(core, ES::Plugin::OpenGL::Component::MaterialHandle("default"));
+    quad.AddComponent<ES::Plugin::OpenGL::Component::ModelHandle>(core, ES::Plugin::OpenGL::Component::ModelHandle("floor"));
+}
+
+// struct Test
+// {
+//     int a = 0;
+//     float b = 0.0f;
+//     std::string c = "Hello World!";
+// };
 
 auto main(int, char**) -> int {
     ES::Engine::Core core;
 
     core.AddPlugins<OpenGLIMGUI>();
 
-    rttr::registration::class_<Test>(std::to_string(entt::type_hash<Test>::value()))
+    rttr::registration::class_<ES::Plugin::Object::Component::Transform>(std::to_string(entt::type_hash<ES::Plugin::Object::Component::Transform>::value()))
         (
-            rttr::metadata("GUI_LABEL", "Test Class"),
-            rttr::metadata("GUI_DESCR", "This is a test class.")
+            rttr::metadata("GUI_LABEL", "Transform"),
+            rttr::metadata("GUI_DESCR", "The transform component.")
         )
-        .constructor<>()
-        .property("a", &Test::a)
+        .property("position", &ES::Plugin::Object::Component::Transform::position)
         (
-            rttr::metadata("GUI_LABEL", "A."),
-            rttr::metadata("GUI_DESCR", "The value of A.")
+            rttr::metadata("GUI_LABEL", "Position."),
+            rttr::metadata("GUI_DESCR", "The position of the object.")
         )
-        .property("b", &Test::b)
+        .property("rotation", &ES::Plugin::Object::Component::Transform::rotation)
         (
-            rttr::metadata("GUI_LABEL", "B."),
-            rttr::metadata("GUI_DESCR", "The value of B.")
+            rttr::metadata("GUI_LABEL", "Rotation."),
+            rttr::metadata("GUI_DESCR", "The rotation of the object.")
         )
-        .property("c", &Test::c)
+        .property("scale", &ES::Plugin::Object::Component::Transform::scale)
         (
-            rttr::metadata("GUI_LABEL", "C."),
-            rttr::metadata("GUI_DESCR", "The value of C.")
+            rttr::metadata("GUI_LABEL", "Scale."),
+            rttr::metadata("GUI_DESCR", "The scale of the object.")
         );
 
-    core.CreateEntity().AddComponent<Test>(core);
-    core.CreateEntity().AddComponent<Test>(core);
-    for (auto [id, storage]: core.GetRegistry().storage()) {
-        std::string name = std::to_string(id);
-        rttr::type type = rttr::type::get_by_name(name);
-        if (type.is_valid()) {
-            std::cout << "Type: " << type.get_name() << std::endl;
-            for (const auto& prop : type.get_properties()) {
-                std::cout << "Property: " << prop.get_name() << std::endl;
-                std::cout << "  Type: " << prop.get_type().get_name() << std::endl;
-                if (prop.get_metadata("GUI_LABEL").is_valid()) {
-                    std::cout << "  GUI Label: " << prop.get_metadata("GUI_LABEL").to_string() << std::endl;
-                }
-                if (prop.get_metadata("GUI_DESCR").is_valid()) {
-                    std::cout << "  GUI Description: " << prop.get_metadata("GUI_DESCR").to_string() << std::endl;
-                }
-            }
-        } else {
-            std::cout << "Type not found for ID: " << id << " with name: " << name << std::endl;
-        }
-    }
+    rttr::registration::class_<ES::Plugin::Object::Component::Mesh>(std::to_string(entt::type_hash<ES::Plugin::Object::Component::Mesh>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "Mesh"),
+            rttr::metadata("GUI_DESCR", "The mesh component.")
+        );
+    rttr::registration::class_<ES::Plugin::OpenGL::Component::ShaderHandle>(std::to_string(entt::type_hash<ES::Plugin::OpenGL::Component::ShaderHandle>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "ShaderHandle"),
+            rttr::metadata("GUI_DESCR", "The shader handle component.")
+        );
+    rttr::registration::class_<ES::Plugin::OpenGL::Component::MaterialHandle>(std::to_string(entt::type_hash<ES::Plugin::OpenGL::Component::MaterialHandle>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "MaterialHandle"),
+            rttr::metadata("GUI_DESCR", "The material handle component.")
+        );
+    rttr::registration::class_<ES::Plugin::OpenGL::Component::ModelHandle>(std::to_string(entt::type_hash<ES::Plugin::OpenGL::Component::ModelHandle>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "ModelHandle"),
+            rttr::metadata("GUI_DESCR", "The model handle component.")
+        );
+
+    rttr::registration::class_<ES::Plugin::OpenGL::Component::FontHandle>(std::to_string(entt::type_hash<ES::Plugin::OpenGL::Component::FontHandle>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "FontHandle"),
+            rttr::metadata("GUI_DESCR", "The font handle component.")
+        );
+    rttr::registration::class_<ES::Plugin::OpenGL::Component::TextHandle>(std::to_string(entt::type_hash<ES::Plugin::OpenGL::Component::TextHandle>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "TextHandle"),
+            rttr::metadata("GUI_DESCR", "The text handle component.")
+        );
+    rttr::registration::class_<ES::Plugin::UI::Component::Text>(std::to_string(entt::type_hash<ES::Plugin::UI::Component::Text>::value()))
+        (
+            rttr::metadata("GUI_LABEL", "Text"),
+            rttr::metadata("GUI_DESCR", "The text component.")
+        )
+        .property("text", &ES::Plugin::UI::Component::Text::text)
+        (
+            rttr::metadata("GUI_LABEL", "Text."),
+            rttr::metadata("GUI_DESCR", "The text to display.")
+        )
+        .property("color", &ES::Plugin::UI::Component::Text::color)
+        (
+            rttr::metadata("GUI_LABEL", "Color."),
+            rttr::metadata("GUI_DESCR", "The color of the text.")
+        );
+
+
+
+    core.RegisterSystem<ES::Engine::Scheduler::Startup>(AddQuad);
 
     core.RunCore();
     return 0;
