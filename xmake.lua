@@ -1,4 +1,4 @@
-add_requires("entt", "gtest", "glm >=1.0.1", "glfw >=3.4", "glew", "spdlog", "fmt", "stb")
+add_requires("entt", "gtest", "glm >=1.0.1", "glfw >=3.4", "glew", "spdlog", "fmt", "stb", "rttr >= 0.9.7")
 add_requires("imgui", {configs = {glfw_opengl3 = true}})
 
 set_project("ES-Editor")
@@ -21,7 +21,7 @@ target("ES-Editor")
     add_files("src/**.cpp")
     add_includedirs("$(projectdir)/src/")
 
-    add_packages("entt", "glm", "glfw", "glew", "spdlog", "fmt", "stb", "imgui")
+    add_packages("entt", "glm", "glfw", "glew", "spdlog", "fmt", "stb", "imgui", "rttr")
 
     set_rundir("$(projectdir)")
 

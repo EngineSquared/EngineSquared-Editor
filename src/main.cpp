@@ -9,6 +9,38 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <rttr/registration>
+
+struct Test
+{
+    int a = 0;
+    float b = 0.0f;
+    std::string c = "Hello World!";
+};
+
+RTTR_REGISTRATION
+{
+  using namespace rttr;
+  registration::class_<Test>("Test")
+    .constructor<>()
+    .property("a", &Test::a)
+    (
+        metadata("GUI_LABEL", "A."),
+        metadata("GUI_DESCR", "The value of A.")
+    )
+    .property("b", &Test::b)
+    (
+        metadata("GUI_LABEL", "B."),
+        metadata("GUI_DESCR", "The value of B.")
+    )
+    .property("c", &Test::c)
+    (
+        metadata("GUI_LABEL", "C."),
+        metadata("GUI_DESCR", "The value of C.")
+    );
+}
+
+
 class OpenGLIMGUI : public ES::Engine::APlugin {
     public:
       explicit OpenGLIMGUI(ES::Engine::Core &core)
@@ -58,6 +90,7 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
 
     RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::PollEvents);
 
+
     RegisterSystems<ES::Engine::Scheduler::Update>([](ES::Engine::Core &core){
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -99,6 +132,18 @@ auto main(int, char**) -> int {
 
     core.AddPlugins<OpenGLIMGUI>();
 
+    // get metadata of Test class
+    rttr::type test_type = rttr::type::get<Test>();
+    for (const auto& prop : test_type.get_properties()) {
+        std::cout << "Property: " << prop.get_name() << std::endl;
+        std::cout << "  Type: " << prop.get_type().get_name() << std::endl;
+        if (prop.get_metadata("GUI_LABEL").is_valid()) {
+            std::cout << "  GUI Label: " << prop.get_metadata("GUI_LABEL").to_string() << std::endl;
+        }
+        if (prop.get_metadata("GUI_DESCR").is_valid()) {
+            std::cout << "  GUI Description: " << prop.get_metadata("GUI_DESCR").to_string() << std::endl;
+        }
+    }
 
 
     core.RunCore();
