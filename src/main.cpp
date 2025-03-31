@@ -75,15 +75,24 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
                 ImGui::Text("Component: %s", type.get_metadata("GUI_LABEL").is_valid() ? type.get_metadata("GUI_LABEL").to_string().c_str() : type.get_name().data() /* or fallback name*/);
                 ImGui::Text("Description: %s", type.get_metadata("GUI_DESCR").is_valid() ? type.get_metadata("GUI_DESCR").to_string().c_str() : "No description available.");
                 if (!type.get_properties().empty()) {
-                    ImGui::Text("Properties:");
-                    for (const auto& prop : type.get_properties()) {
-                        if (prop.get_metadata("GUI_LABEL").is_valid()) {
-                            ImGui::Text("  %s", prop.get_metadata("GUI_LABEL").to_string().c_str());
+                    if (type.get_metadata("GUI_DRAW").is_valid()) {
+                        if (type.get_metadata("GUI_DRAW").can_convert<std::function<void()>>()) {
+                            auto func = type.get_metadata("GUI_DRAW").convert<std::function<void()>>();
+                            func();
                         } else {
-                            ImGui::Text("  %s", prop.get_type().get_name().data());
+                            ImGui::Text("GUI_DRAW metadata is not a valid function.");
                         }
-                        if (prop.get_metadata("GUI_DESCR").is_valid()) {
-                            ImGui::Text("  Description: %s", prop.get_metadata("GUI_DESCR").to_string().c_str());
+                    } else {
+                        ImGui::Text("Properties:");
+                        for (const auto& prop : type.get_properties()) {
+                            if (prop.get_metadata("GUI_LABEL").is_valid()) {
+                                ImGui::Text("  %s", prop.get_metadata("GUI_LABEL").to_string().c_str());
+                            } else {
+                                ImGui::Text("  %s", prop.get_type().get_name().data());
+                            }
+                            if (prop.get_metadata("GUI_DESCR").is_valid()) {
+                                ImGui::Text("  Description: %s", prop.get_metadata("GUI_DESCR").to_string().c_str());
+                            }
                         }
                     }
                 }
@@ -181,25 +190,23 @@ auto main(int, char**) -> int {
     core.AddPlugins<OpenGLIMGUI>();
 
     rttr::registration::class_<ES::Plugin::Object::Component::Transform>(std::to_string(entt::type_hash<ES::Plugin::Object::Component::Transform>::value()))
+        .property("position", &ES::Plugin::Object::Component::Transform::position)
+        .property("rotation", &ES::Plugin::Object::Component::Transform::rotation)
+        .property("scale", &ES::Plugin::Object::Component::Transform::scale);
+        
+    rttr::registration::class_<ES::Plugin::Object::Component::Transform>(std::to_string(entt::type_hash<ES::Plugin::Object::Component::Transform>::value()))
         (
             rttr::metadata("GUI_LABEL", "Transform"),
-            rttr::metadata("GUI_DESCR", "The transform component.")
-        )
-        .property("position", &ES::Plugin::Object::Component::Transform::position)
-        (
-            rttr::metadata("GUI_LABEL", "Position."),
-            rttr::metadata("GUI_DESCR", "The position of the object.")
-        )
-        .property("rotation", &ES::Plugin::Object::Component::Transform::rotation)
-        (
-            rttr::metadata("GUI_LABEL", "Rotation."),
-            rttr::metadata("GUI_DESCR", "The rotation of the object.")
-        )
-        .property("scale", &ES::Plugin::Object::Component::Transform::scale)
-        (
-            rttr::metadata("GUI_LABEL", "Scale."),
-            rttr::metadata("GUI_DESCR", "The scale of the object.")
+            rttr::metadata("GUI_DESCR", "The transform component."),
+            rttr::metadata("GUI_DRAW", std::function<void()>([](){
+                ImGui::Text("Transform Component");
+                ImGui::Text("Position (x, y, z)");
+                ImGui::Text("Rotation (x, y, z, w)");
+                ImGui::Text("Scale (x, y, z)");
+            }))
         );
+    
+        
 
     rttr::registration::class_<ES::Plugin::Object::Component::Mesh>(std::string{entt::type_id<ES::Plugin::Object::Component::Mesh>().name()})
         (
