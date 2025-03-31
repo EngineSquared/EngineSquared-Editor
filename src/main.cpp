@@ -71,7 +71,6 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
         for (auto [id, storage]: core.GetRegistry().storage()) {
             std::string name = std::to_string(id);
             rttr::type type = rttr::type::get_by_name(name);
-            // ImGui::BeginChild(name.c_str());
             if (type.is_valid()) {
                 ImGui::Text("Component: %s", type.get_metadata("GUI_LABEL").is_valid() ? type.get_metadata("GUI_LABEL").to_string().c_str() : type.get_name().data() /* or fallback name*/);
                 ImGui::Text("Description: %s", type.get_metadata("GUI_DESCR").is_valid() ? type.get_metadata("GUI_DESCR").to_string().c_str() : "No description available.");
@@ -88,11 +87,10 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
                         }
                     }
                 }
-                ImGui::Separator();
             } else {
-                // ImGui::Text("Component (not valid): %s ", storage.type().name());
-                std::cout << storage.type().name() << std::endl;
+                ImGui::Text("Component (not valid): %s ", std::string(storage.type().name()).c_str());
             }
+            ImGui::Separator();
         }
 
         ImGui::End();
@@ -203,7 +201,7 @@ auto main(int, char**) -> int {
             rttr::metadata("GUI_DESCR", "The scale of the object.")
         );
 
-    rttr::registration::class_<ES::Plugin::Object::Component::Mesh>(std::to_string(entt::type_hash<ES::Plugin::Object::Component::Mesh>::value()))
+    rttr::registration::class_<ES::Plugin::Object::Component::Mesh>(std::string{entt::type_id<ES::Plugin::Object::Component::Mesh>().name()})
         (
             rttr::metadata("GUI_LABEL", "Mesh"),
             rttr::metadata("GUI_DESCR", "The mesh component.")
