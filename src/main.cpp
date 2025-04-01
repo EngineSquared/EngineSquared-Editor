@@ -11,6 +11,13 @@
 
 #include <rttr/registration>
 
+namespace UI {
+class SelectedEntity {
+public:
+    std::optional<entt::entity> entity = std::nullopt;
+};
+}
+
 class OpenGLIMGUI : public ES::Engine::APlugin {
     public:
       explicit OpenGLIMGUI(ES::Engine::Core &core)
@@ -19,125 +26,139 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
             };
       ~OpenGLIMGUI() = default;
   
-      void Bind() final {
+      void Bind() final
+      {
         RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::InitGLFW);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::SetupGLFWHints);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::CreateWindowSystem);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::LinkGLFWContextToGL);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::SetupGLFWHints);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::CreateWindowSystem);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::LinkGLFWContextToGL);
 
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::InitGLEW);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::CheckGLEWVersion);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::InitGLEW);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::CheckGLEWVersion);
 
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::EnableVSync);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::EnableVSync);
 
-    RegisterSystems<ES::Engine::Scheduler::Startup>([](ES::Engine::Core &core){
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        RegisterSystems<ES::Engine::Scheduler::Startup>([](ES::Engine::Core &core){
+            IMGUI_CHECKVERSION();
+            ImGui::CreateContext();
+            ImGuiIO& io = ImGui::GetIO(); (void)io;
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
+            // Setup Dear ImGui style
+            ImGui::StyleColorsDark();
 
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(core.GetResource<ES::Plugin::Window::Resource::Window>().GetGLFWWindow(), true);
-        ImGui_ImplOpenGL3_Init("#version 130");
-    });
+            // Setup Platform/Renderer backends
+            ImGui_ImplGlfw_InitForOpenGL(core.GetResource<ES::Plugin::Window::Resource::Window>().GetGLFWWindow(), true);
+            ImGui_ImplOpenGL3_Init("#version 130");
+        });
 
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::LoadButtons);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::Window::System::LoadButtons);
 
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadFontManager);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadMaterialCache);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadShaderManager);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadDefaultShader);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadDefaultTextShader);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::CreateCamera);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::SetupShaderUniforms);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::SetupTextShaderUniforms);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadGLMeshBufferManager);
-    RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadGLTextBufferManager);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadFontManager);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadMaterialCache);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadShaderManager);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadDefaultShader);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadDefaultTextShader);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::CreateCamera);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::SetupShaderUniforms);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::SetupTextShaderUniforms);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadGLMeshBufferManager);
+        RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Plugin::OpenGL::System::LoadGLTextBufferManager);
 
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::PollEvents);
+        RegisterSystems<ES::Engine::Scheduler::Startup>([](ES::Engine::Core &core){
+            core.RegisterResource<UI::SelectedEntity>(UI::SelectedEntity());
+        });
+
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::PollEvents);
 
 
-    RegisterSystems<ES::Engine::Scheduler::Update>([](ES::Engine::Core &core){
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+        RegisterSystems<ES::Engine::Scheduler::Update>([](ES::Engine::Core &core){
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
 
-        ImGui::Begin("Components:");
-        
-        for (auto [id, storage]: core.GetRegistry().storage()) {
-            std::string name = std::to_string(id);
-            rttr::type type = rttr::type::get_by_name(name);
-            if (type.is_valid()) {
-                ImGui::Text("Component: %s", type.get_metadata("GUI_LABEL").is_valid() ? type.get_metadata("GUI_LABEL").to_string().c_str() : type.get_name().data() /* or fallback name*/);
-                ImGui::Text("Description: %s", type.get_metadata("GUI_DESCR").is_valid() ? type.get_metadata("GUI_DESCR").to_string().c_str() : "No description available.");
-                if (!type.get_properties().empty()) {
-                    if (type.get_metadata("GUI_DRAW").is_valid()) {
-                        if (type.get_metadata("GUI_DRAW").can_convert<std::function<void()>>()) {
-                            auto func = type.get_metadata("GUI_DRAW").convert<std::function<void()>>();
-                            func();
-                        } else {
-                            ImGui::Text("GUI_DRAW metadata is not a valid function.");
-                        }
-                    } else {
-                        ImGui::Text("Properties:");
-                        for (const auto& prop : type.get_properties()) {
-                            if (prop.get_metadata("GUI_LABEL").is_valid()) {
-                                ImGui::Text("  %s", prop.get_metadata("GUI_LABEL").to_string().c_str());
-                            } else {
-                                ImGui::Text("  %s", prop.get_type().get_name().data());
-                            }
-                            if (prop.get_metadata("GUI_DESCR").is_valid()) {
-                                ImGui::Text("  Description: %s", prop.get_metadata("GUI_DESCR").to_string().c_str());
-                            }
-                        }
+            auto &selectedEntity = core.GetResource<UI::SelectedEntity>();
+
+            ImGui::Begin("Hierarchy:");
+                ImGui::Text("Entities:");
+                auto view = core.GetRegistry().view<entt::entity>();
+                for (auto entity : view) {
+                    // ImGui::Text("  Entity: %d", (int)entity);
+                    if (ImGui::Selectable(std::to_string((int)entity).c_str(), selectedEntity.entity.has_value() && selectedEntity.entity.value() == entity)) {
+                        selectedEntity.entity = entity;
                     }
                 }
-            } else {
-                ImGui::Text("Component (not valid): %s ", std::string(storage.type().name()).c_str());
+            ImGui::End();
+
+            if (selectedEntity.entity.has_value() && selectedEntity.entity.value() != entt::null) {
+                auto ent = selectedEntity.entity.value();
+                ImGui::Begin("Components:");
+                
+                for (auto [id, storage]: core.GetRegistry().storage()) {
+                    std::string name = std::to_string(id);
+                    rttr::type type = rttr::type::get_by_name(name);
+                    if (type.is_valid() && storage.contains(ent)) {
+                        ImGui::Text("Component: %s", type.get_metadata("GUI_LABEL").is_valid() ? type.get_metadata("GUI_LABEL").to_string().c_str() : type.get_name().data() /* or fallback name*/);
+                        ImGui::Text("Description: %s", type.get_metadata("GUI_DESCR").is_valid() ? type.get_metadata("GUI_DESCR").to_string().c_str() : "No description available.");
+                        if (!type.get_properties().empty()) {
+                            if (type.get_metadata("GUI_DRAW").is_valid()) {
+                                if (type.get_metadata("GUI_DRAW").can_convert<std::function<void(ES::Engine::Core &, ES::Engine::Entity)>>()) {
+                                    auto func = type.get_metadata("GUI_DRAW").convert<std::function<void(ES::Engine::Core &, ES::Engine::Entity)>>();
+                                    func(core, ES::Engine::Entity(ent));
+                                } else {
+                                    ImGui::Text("GUI_DRAW metadata is not a valid function.");
+                                }
+                            } else {
+                                ImGui::Text("Properties:");
+                                for (const auto& prop : type.get_properties()) {
+                                    if (prop.get_metadata("GUI_LABEL").is_valid()) {
+                                        ImGui::Text("  %s", prop.get_metadata("GUI_LABEL").to_string().c_str());
+                                    } else {
+                                        ImGui::Text("  %s", prop.get_type().get_name().data());
+                                    }
+                                    if (prop.get_metadata("GUI_DESCR").is_valid()) {
+                                        ImGui::Text("  Description: %s", prop.get_metadata("GUI_DESCR").to_string().c_str());
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        ImGui::Text("Component (not valid): %s ", std::string(storage.type().name()).c_str());
+                    }
+                    ImGui::Separator();
+                }
+
+                ImGui::End();
             }
-            ImGui::Separator();
-        }
 
-        ImGui::End();
+            ImGui::Render();
+        });
 
-        ImGui::Begin("Hierarchy:");
-        ImGui::Text("Entities:");
-        auto view = core.GetRegistry().view<entt::entity>();
-        for (auto entity : view) {
-            ImGui::Text("  Entity: %d", (int)entity);
-        }
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdateKey);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdatePosCursor);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdateButton);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::SaveLastMousePos);
 
-        ImGui::Render();
-    });
+        RegisterSystems<ES::Engine::Scheduler::Update>([](ES::Engine::Core &core){
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        });
 
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdateKey);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdatePosCursor);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::UpdateButton);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::SaveLastMousePos);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::SwapBuffers);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::StopSystems);
 
-    RegisterSystems<ES::Engine::Scheduler::Update>([](ES::Engine::Core &core){
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    });
-
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::SwapBuffers);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::Window::System::StopSystems);
-
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::MouseDragging);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::UpdateMatrices);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLClearColor);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLClearDepth);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLEnableDepth);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLEnableCullFace);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::SetupCamera);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::SetupLights);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::LoadGLMeshBuffer);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::LoadGLTextBuffer);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::RenderMeshes);
-    RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::RenderText);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::MouseDragging);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::UpdateMatrices);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLClearColor);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLClearDepth);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLEnableDepth);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::GLEnableCullFace);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::SetupCamera);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::SetupLights);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::LoadGLMeshBuffer);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::LoadGLTextBuffer);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::RenderMeshes);
+        RegisterSystems<ES::Engine::Scheduler::Update>(ES::Plugin::OpenGL::System::RenderText);
     }
 };
 
@@ -198,11 +219,13 @@ auto main(int, char**) -> int {
         (
             rttr::metadata("GUI_LABEL", "Transform"),
             rttr::metadata("GUI_DESCR", "The transform component."),
-            rttr::metadata("GUI_DRAW", std::function<void()>([](){
+            rttr::metadata("GUI_DRAW", std::function<void(ES::Engine::Core &, ES::Engine::Entity)>([](ES::Engine::Core &core, ES::Engine::Entity ent) {
                 ImGui::Text("Transform Component");
-                ImGui::Text("Position (x, y, z)");
-                ImGui::Text("Rotation (x, y, z, w)");
-                ImGui::Text("Scale (x, y, z)");
+                ImGui::InputFloat3("Position", &core.GetRegistry().get<ES::Plugin::Object::Component::Transform>(ent).position[0]);
+                glm::vec3 rotation = glm::eulerAngles(core.GetRegistry().get<ES::Plugin::Object::Component::Transform>(ent).rotation);
+                ImGui::SliderFloat3("Rotation", &rotation[0], -3.14f / 2.f, 3.14f / 2.f);
+                core.GetRegistry().get<ES::Plugin::Object::Component::Transform>(ent).rotation = glm::quat(rotation);
+                ImGui::InputFloat3("Scale", &core.GetRegistry().get<ES::Plugin::Object::Component::Transform>(ent).scale[0]);
             }))
         );
     
