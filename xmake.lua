@@ -21,6 +21,7 @@ target("ES-Editor")
 
     add_files("src/**.cpp")
     add_includedirs("$(projectdir)/src/")
+    add_includedirs("$(projectdir)/src/ES-plugin-types/")
 
     add_packages("entt", "glm", "glfw", "glew", "spdlog", "fmt", "stb", "imgui", "rttr")
 
