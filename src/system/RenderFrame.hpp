@@ -4,6 +4,6 @@
 
 namespace ES::Editor::System {
 
-void RenderFrame(const ES::Engine::Core &);
+void RenderFrame(ES::Engine::Core &);
 
 }
