@@ -19,6 +19,8 @@
 #include "DrawComponents.hpp"
 #include "RenderFrame.hpp"
 
+
+
 #include "SelectedEntity.hpp"
 
 #include "Types.hpp"
@@ -36,19 +38,20 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
         RequirePlugins<ES::Plugin::OpenGL::Plugin>();
         RegisterSystems<ES::Plugin::RenderingPipeline::Init>(ES::Editor::System::InitImGui);
         RegisterSystems<ES::Plugin::RenderingPipeline::Setup>(ES::Editor::System::SetupImGui,
-        [](ES::Engine::Core &core){
+        [](ES::Engine::Core &){
             ImGuiIO& io = ImGui::GetIO();
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
             
         });
         RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Editor::System::AddSelectedEntity);
-        RegisterSystems<ES::Plugin::RenderingPipeline::PreUpdate>(
-            ES::Editor::System::NewFrame
-        );
         RegisterSystems<ES::Engine::Scheduler::Update>(
             [](ES::Engine::Core &core){
-                static bool docking_enabled = false;
+                core.GetResource<ES::Plugin::OpenGL::Utils::Framebuffer>().UnBind();
+            },
+            ES::Editor::System::NewFrame,
+            [](ES::Engine::Core &core){
+                static bool docking_enabled = true;
                 if (docking_enabled) {
                     static bool opt_fullscreen = true;
                     static bool opt_padding = false;
@@ -113,11 +116,11 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
                     ImGui::End();      
                 }
                 ImGui::Begin("TextureWindow");
-                ImGui::Image(core.GetResource<ES::Plugin::OpenGL::Resource::TextureManager>().Get("TestTextureWindow").GetTextureID(), {100, 100});
+                ImGui::Image(core.GetResource<ES::Plugin::OpenGL::Utils::Framebuffer>().GetColorAttachment(), {512, 512});
                 ImGui::End();
             },
             // Utily call to show the demo window
-            [](ES::Engine::Core &core){
+            [](ES::Engine::Core &){
                 ImGui::ShowDemoWindow();
             },
             ES::Editor::System::DrawHierarchy,
@@ -125,12 +128,6 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
         );
         RegisterSystems<ES::Plugin::RenderingPipeline::ToGPU>(
             ES::Editor::System::RenderFrame
-        );
-        RegisterSystems<ES::Engine::Scheduler::Startup>(
-            [](ES::Engine::Core &core) {
-                auto &textureManager = core.GetResource<ES::Plugin::OpenGL::Resource::TextureManager>();
-    		    textureManager.Add(entt::hashed_string{"TestTextureWindow"}, "preview.png");
-            }
         );
     }
 };
