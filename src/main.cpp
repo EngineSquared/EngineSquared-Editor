@@ -18,7 +18,7 @@
 #include "DrawHierarchy.hpp"
 #include "DrawComponents.hpp"
 #include "RenderFrame.hpp"
-
+#include "InputManager.hpp"
 
 
 #include "SelectedEntity.hpp"
@@ -43,6 +43,14 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
             
+        },[](ES::Engine::Core &core) {
+            auto &inputManager = core.GetResource<ES::Plugin::Input::Resource::InputManager>();
+            inputManager.RegisterMouseButtonCallback(
+                [](ES::Engine::Core &, int button, int action, int){
+                    ImGuiIO& io = ImGui::GetIO();
+                    io.AddMouseButtonEvent(button, action == GLFW_PRESS);
+                }
+            );
         });
         RegisterSystems<ES::Engine::Scheduler::Startup>(ES::Editor::System::AddSelectedEntity);
         RegisterSystems<ES::Engine::Scheduler::Update>(
@@ -116,7 +124,7 @@ class OpenGLIMGUI : public ES::Engine::APlugin {
                     ImGui::End();      
                 }
                 ImGui::Begin("TextureWindow");
-                ImGui::Image(core.GetResource<ES::Plugin::OpenGL::Utils::Framebuffer>().GetColorAttachment(), {512, 512});
+                ImGui::Image(core.GetResource<ES::Plugin::OpenGL::Utils::Framebuffer>().GetColorAttachment(), {512, 512}, ImVec2(0, 1), ImVec2(1, 0));
                 ImGui::End();
             },
             // Utily call to show the demo window
