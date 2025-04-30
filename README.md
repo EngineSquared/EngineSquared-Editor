@@ -4,5 +4,7 @@
 
 # Description
 
-As we don't have editor now, I wanted to try to create a simple one using IMGUI.
+Since we currently don't have an editor, we wanted to experiment by creating a simple one using IMGUI.
+
+This project is just a proof of concept for now.
 
