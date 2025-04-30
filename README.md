@@ -1,6 +1,6 @@
 # Engine Squared Editor (WIP)
 
-![demo](https://github.com/user-attachments/assets/85ce96a1-fb31-466e-b485-6787557e1941)
+![demo](https://github.com/user-attachments/assets/f2c5c7a8-1958-4a76-8d00-088f6305fc2e)
 
 # Description
 
